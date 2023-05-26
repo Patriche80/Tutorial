@@ -1,0 +1,71 @@
+package com.ccsw.tutorial.lending;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.ccsw.tutorial.lending.model.Lending;
+
+@ExtendWith(MockitoExtension.class)
+public class LendingTest {
+
+    public static final Long EXISTS_LENDING_ID = 1L;
+    public static final Long NOT_EXISTS_LENDING_ID = 0L;
+
+    @Mock
+    private LendingRepository lendingRepository;
+
+    @InjectMocks
+    private LendingServiceImpl lendingService;
+
+    @Test
+    public void getExistsLendingIdShouldReturnLending() {
+
+        Lending lending = mock(Lending.class);
+        when(lending.getId()).thenReturn(EXISTS_LENDING_ID);
+        when(lendingRepository.findById(EXISTS_LENDING_ID)).thenReturn(Optional.of(lending));
+
+        Lending lendingResponse = lendingService.get(EXISTS_LENDING_ID);
+
+        assertNotNull(lendingResponse);
+
+        assertEquals(EXISTS_LENDING_ID, lendingResponse.getId());
+    }
+
+    @Test
+        public void getNotExistsLendingIdShouldReturnNull() {
+
+              when(lendingRepository.findById(NOT_EXISTS_LENDING_ID)).thenReturn(Optional.empty());
+
+              Lending lending = lendingService.get(NOT_EXISTS_LENDING_ID);
+
+              assertNull(lending);
+        }
+
+    @Test
+    public void findAllShouldReturnAllLendings() {
+
+        List<Lending> list = new ArrayList<>();
+        list.add(mock(Lending.class));
+
+        when(lendingRepository.findAll()).thenReturn(list);
+
+        List<Lending> lendings = lendingService.findAll();
+
+        assertNotNull(lendings);
+        assertEquals(1, lendings.size());
+    }
+
+}

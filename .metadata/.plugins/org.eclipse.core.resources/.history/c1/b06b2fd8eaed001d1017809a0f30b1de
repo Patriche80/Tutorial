@@ -1,0 +1,33 @@
+package com.ccsw.tutorial.game;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.dozer.DozerBeanMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ccsw.tutorial.game.model.Game;
+import com.ccsw.tutorial.game.model.GameDto;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * @author ccsw
+ *
+ */
+@Tag(name = "Game", description = "API of Game")
+@RequestMapping(value = "/game")
+@RestController
+@CrossOrigin(origins = "*")
+public class GameController {
+
+    
+}

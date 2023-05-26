@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.caterogy.model.Category"/>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.category.CategoryRepository"/>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.author.model.Author"/>
+    <fullyQualifiedTypeName name="org.springframework.data.repository.core.support.DefaultCrudMethods"/>
+    <fullyQualifiedTypeName name="org.springframework.data.repository.CrudRepository"/>
+    <fullyQualifiedTypeName name="jakarta.transaction.Transactional"/>
+    <fullyQualifiedTypeName name="org.springframework.beans.factory.annotation.Autowired"/>
+    <fullyQualifiedTypeName name="org.dozer.DozerBeanMapper"/>
+    <fullyQualifiedTypeName name="java.util.stream.Collectors"/>
+    <fullyQualifiedTypeName name="java.util.List"/>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.client.model.Client"/>
+    <fullyQualifiedTypeName name="org.mockito.ArgumentCaptor"/>
+    <fullyQualifiedTypeName name="org.springframework.http.HttpEntity"/>
+    <fullyQualifiedTypeName name="java.util.Optional"/>
+    <fullyQualifiedTypeName name="org.springframework.http.HttpStatus"/>
+    <fullyQualifiedTypeName name="java.lang.System"/>
+    <fullyQualifiedTypeName name="jakarta.persistence.criteria.CriteriaBuilder"/>
+    <fullyQualifiedTypeName name="java.util.Date"/>
+    <fullyQualifiedTypeName name="java.text.DateFormat"/>
+    <fullyQualifiedTypeName name="java.text.SimpleDateFormat"/>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.lending.LendingSpecification"/>
+    <fullyQualifiedTypeName name="com.ccsw.tutorial.common.criteria.SearchCriteria"/>
+    <fullyQualifiedTypeName name="org.springframework.data.jpa.domain.Specification"/>
+</qualifiedTypeNameHistroy>

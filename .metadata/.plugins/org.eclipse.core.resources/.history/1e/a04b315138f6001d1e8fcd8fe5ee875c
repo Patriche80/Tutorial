@@ -1,0 +1,260 @@
+package com.ccsw.tutorial.lending;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import com.ccsw.tutorial.client.ClientRepository;
+import com.ccsw.tutorial.common.criteria.SearchCriteria;
+import com.ccsw.tutorial.game.GameRepository;
+import com.ccsw.tutorial.lending.model.Lending;
+import com.ccsw.tutorial.lending.model.LendingDto;
+import com.ccsw.tutorial.lending.model.LendingSearchDto;
+
+import jakarta.transaction.Transactional;
+
+@Service
+@Transactional
+public class LendingServiceImpl implements LendingService {
+
+    @Autowired
+    LendingRepository lendingRepository;
+
+    @Autowired
+    GameRepository gamerepository;
+
+    @Autowired
+    ClientRepository clientrepository;
+
+    @Override
+    public void save(LendingDto dto) throws Exception {
+
+        Lending lending = new Lending();
+
+        /*
+         * Elimina horas, minutos y segundos del día actual para que al escoger un
+         * préstamo con fecha actual lo acepte
+         */
+        Calendar today = Calendar.getInstance();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+
+        /*
+         * Para que el préstamo la fecha de Inicio sea igual o superior al día de hoy.
+         * Parseo de Calendar(today) a Date con getTime()
+         */
+        System.out.println("++++++++++++++++++++++++++El valor de today es: " + today);
+        if (dto.getStartLendingDate().compareTo(today.getTime()) != -1) {
+
+            // Para que la fecha Fin de préstamo sea superior a la fecha de inicio
+            if (dto.getStartLendingDate().before(dto.getFinishLendingDate())) {
+
+                long startTime = dto.getStartLendingDate().getTime();
+                long finishTime = dto.getFinishLendingDate().getTime();
+                long daysSince = (long) Math.floor(startTime / (1000 * 60 * 60 * 24));
+                long daysUntil = (long) Math.floor(finishTime / (1000 * 60 * 60 * 24));
+                long days = daysUntil - daysSince;
+
+                // Para que el préstamo no sea superior a 14 días
+                if (days < 15) {
+
+                    // Para que un juego no esté prestado 2 veces en un mismo periodo de tiempo
+                    if (checkGameAvailability(dto)) {
+
+                        // Para que un Cliente no pueda tener alquilados 2 juegos en fechas
+                        // coincidientes
+                        if (checkLendingByClient(dto)) {
+
+                            BeanUtils.copyProperties(dto, lending, "id", "gameId", "clientId", "startLendingDate",
+                                    "finishLendingDate");
+                            lending.setStartLendingDate(dto.getStartLendingDate());
+                            lending.setFinishLendingDate(dto.getFinishLendingDate());
+                            this.lendingRepository.save(lending);
+
+                        } else {
+                            throw new Exception("Ya tienes un juego alquilado en esas fechas, elige otra fecha!");
+                        }
+                    } else {
+                        throw new Exception("El juego ya está alquilado en esas fechas! Elige otro juego");
+                    }
+                } else {
+                    throw new Exception("Cuánto vicio! No puedes alquilar un juego más de 14 días!");
+                }
+            } else {
+                throw new Exception("La Fecha de Devolución del juego no puede ser inferior a la Fecha de Inicio");
+            }
+        } else {
+            throw new Exception("La Fecha de Inicio del préstamo debe ser desde hoy en adelante :)");
+        }
+    }
+
+    // Comprobar la disponibilidad del Juego
+    public boolean checkGameAvailability(LendingDto dto) {
+
+        LendingSpecification gameSpec = new LendingSpecification(
+                new SearchCriteria("game.id", ":", dto.getGame().getId()));
+
+        // Formateador de fechas.
+        SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Comprobamos si la ventana de la fecha está desplazada a izq o derecha
+        // String [] fechas =String [] {fecha1, fecha2);
+        SearchCriteria critRange1_1 = new SearchCriteria("startLendingDate", "between", new String[] {
+                formatDate.format(dto.getStartLendingDate()), formatDate.format(dto.getFinishLendingDate()) });
+
+        SearchCriteria critRange1_2 = new SearchCriteria("finishLendingDate", "between", new String[] {
+                formatDate.format(dto.getStartLendingDate()), formatDate.format(dto.getFinishLendingDate()) });
+
+        LendingSpecification filtroRange1_1 = new LendingSpecification(critRange1_1);
+        LendingSpecification filtroRange1_2 = new LendingSpecification(critRange1_2);
+
+        Specification<Lending> filtroRange1 = Specification.where(filtroRange1_1).or(filtroRange1_2);
+
+        // Comprobamos si la ventana de alquiler está contenida en algún otro alquiler
+        SearchCriteria critRange2_1 = new SearchCriteria("startLendingDate", "<",
+                formatDate.format(dto.getStartLendingDate()));
+        SearchCriteria critRange2_2 = new SearchCriteria("finishLendingDate", ">",
+                formatDate.format(dto.getFinishLendingDate()));
+
+        LendingSpecification filtroRange2_1 = new LendingSpecification(critRange2_1);
+        LendingSpecification filtroRange2_2 = new LendingSpecification(critRange2_2);
+
+        Specification<Lending> filtroRange2 = Specification.where(filtroRange2_1).and(filtroRange2_2);
+
+        // Comprobamos si la ventana de alquiler contiene algún otro alquiler
+        SearchCriteria critRange3_1 = new SearchCriteria("startLendingDate", ">",
+                formatDate.format(dto.getStartLendingDate()));
+        SearchCriteria critRange3_2 = new SearchCriteria("finishLendingDate", "<",
+                formatDate.format(dto.getFinishLendingDate()));
+
+        LendingSpecification filterRange3_1 = new LendingSpecification(critRange3_1);
+        LendingSpecification filterRange3_2 = new LendingSpecification(critRange3_2);
+
+        Specification<Lending> filterRange3 = Specification.where(filterRange3_1).and(filterRange3_2);
+
+        Specification<Lending> filterDates = Specification.where(filtroRange1).or(filtroRange2).or(filterRange3);
+
+        Specification<Lending> spec = Specification.where(gameSpec);
+        spec = spec.and(filterDates);
+
+        List<Lending> checkGame = this.lendingRepository.findAll(spec);
+
+        if (checkGame.size() > 0) {
+            // JUEGO PRESTADO EN ESAS FECHAS. NO DISPONIBLE.
+            return false;
+        }
+        // JUEGO DISPONIBLE: True;
+        return true;
+    }
+
+    // Comprobar la disponibilidad del Cliente
+    public boolean checkLendingByClient(LendingDto dto) {
+
+        LendingSpecification gameSpec = new LendingSpecification(
+                new SearchCriteria("client.id", ":", dto.getClient().getId()));
+
+        // Formateador de fechas.
+        SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Comprobamos si la ventana de la fecha está desplazada a izq o derecha
+        // String [] fechas =String [] {fecha1, fecha2);
+        SearchCriteria critRange1_1 = new SearchCriteria("startLendingDate", "between", new String[] {
+                formatDate.format(dto.getStartLendingDate()), formatDate.format(dto.getFinishLendingDate()) });
+
+        SearchCriteria critRange1_2 = new SearchCriteria("finishLendingDate", "between", new String[] {
+                formatDate.format(dto.getStartLendingDate()), formatDate.format(dto.getFinishLendingDate()) });
+
+        LendingSpecification filterRange1_1 = new LendingSpecification(critRange1_1);
+        LendingSpecification filterRange1_2 = new LendingSpecification(critRange1_2);
+
+        Specification<Lending> filterRange1 = Specification.where(filterRange1_1).or(filterRange1_2);
+
+        // Comprobamos si la ventana de alquiler está contenida en algún otro alquiler
+        SearchCriteria critRange2_1 = new SearchCriteria("startLendingDate", "<",
+                formatDate.format(dto.getStartLendingDate()));
+        SearchCriteria critRange2_2 = new SearchCriteria("finishLendingDate", ">",
+                formatDate.format(dto.getFinishLendingDate()));
+
+        LendingSpecification filterRange2_1 = new LendingSpecification(critRange2_1);
+        LendingSpecification filterRange2_2 = new LendingSpecification(critRange2_2);
+
+        Specification<Lending> filterRange2 = Specification.where(filterRange2_1).and(filterRange2_2);
+
+        // Comprobamos si la ventana de alquiler contiene algún otro alquiler
+        SearchCriteria critRange3_1 = new SearchCriteria("startLendingDate", ">",
+                formatDate.format(dto.getStartLendingDate()));
+        SearchCriteria critRange3_2 = new SearchCriteria("finishLendingDate", "<",
+                formatDate.format(dto.getFinishLendingDate()));
+
+        LendingSpecification filterRange3_1 = new LendingSpecification(critRange3_1);
+        LendingSpecification filterRange3_2 = new LendingSpecification(critRange3_2);
+
+        Specification<Lending> filterRange3 = Specification.where(filterRange3_1).and(filterRange3_2);
+
+        Specification<Lending> filterDates = Specification.where(filterRange1).or(filterRange2).or(filterRange3);
+
+        Specification<Lending> spec = Specification.where(gameSpec);
+
+        spec = spec.and(filterDates);
+
+        List<Lending> checkClient = this.lendingRepository.findAll(spec);
+
+        if (checkClient.size() > 0) {
+            // CLIENTE CON UN JUEGO ALQUILADO EN ESAS FECHAS. NO PUEDE ALQUILAR OTRO
+            return false;
+        }
+        // FECHA DISPONIBLE PARA EL CLIENTE: True;
+        return true;
+    }
+
+    @Override
+    public Page<Lending> findPage(LendingSearchDto dto, Long gameId, Long clientId, Date date) {
+
+        LendingSpecification gameSpec = new LendingSpecification(new SearchCriteria("game.id", ":", gameId));
+
+        LendingSpecification clientSpec = new LendingSpecification(new SearchCriteria("client.id", ":", clientId));
+
+        LendingSpecification dateStart = new LendingSpecification(
+                new SearchCriteria("lending.startLendingDate", ">=", date));
+
+        LendingSpecification dateReturn = new LendingSpecification(
+                new SearchCriteria("lending.returnLendingDate", "<=", date));
+
+        Specification<Lending> spec = Specification.where(gameSpec).and(clientSpec).and(dateStart).and(dateReturn);
+
+        return this.lendingRepository.findAll(spec, dto.getPageable().getPageable());
+
+    }
+
+    @Override
+    public List<Lending> findAll() {
+
+        return (List<Lending>) this.lendingRepository.findAll();
+
+    };
+
+    @Override
+    public Lending get(Long id) {
+
+        return this.lendingRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public void delete(Long id) throws Exception {
+
+        if (this.get(id) == null) {
+            throw new Exception("Not exists");
+        }
+
+        this.lendingRepository.deleteById(id);
+    };
+
+}

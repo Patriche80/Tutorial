@@ -1,0 +1,210 @@
+package com.ccsw.tutorial.lending;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+
+import com.ccsw.tutorial.client.ClientRepository;
+import com.ccsw.tutorial.common.criteria.SearchCriteria;
+import com.ccsw.tutorial.game.GameRepository;
+import com.ccsw.tutorial.lending.model.Lending;
+import com.ccsw.tutorial.lending.model.LendingDto;
+import com.ccsw.tutorial.lending.model.LendingSearchDto;
+
+import jakarta.transaction.Transactional;
+
+@Service
+@Transactional
+public class LendingServiceImpl implements LendingService {
+
+    @Autowired
+    LendingRepository lendingRepository;
+
+    @Autowired
+    GameRepository gamerepository;
+
+    @Autowired
+    ClientRepository clientrepository;
+
+    @Override
+    public void save(LendingDto dto) throws Exception {
+
+        Lending lending = new Lending();
+
+        // Elimina horas, minutos y segundos del día actual para que acepte el préstamo
+        // con inicio hoy
+        Calendar today = Calendar.getInstance();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+
+        /*
+         * Para que el préstamo la fecha de Inicio sea igual o superior al día de hoy.
+         * Parseo de Calendar a Date con getTime()
+         */
+        if (dto.getStartLendingDate().compareTo(today.getTime()) != -1) {
+
+            // Para que la fecha Fin de préstamo sea superior a la fecha de inicio
+            if (dto.getStartLendingDate().before(dto.getFinishLendingDate())) {
+
+                long startTime = dto.getStartLendingDate().getTime();
+                long finishTime = dto.getFinishLendingDate().getTime();
+                long daysSince = (long) Math.floor(startTime / (1000 * 60 * 60 * 24));
+                long daysUntil = (long) Math.floor(finishTime / (1000 * 60 * 60 * 24));
+                long days = daysUntil - daysSince;
+
+                // Para que el préstamo no sea superior a 14 días
+                if (days < 15) {
+
+                    if (checkGameAvailability(dto)) {
+
+                        // if (checkLendingByClient(dto)) {
+
+                        BeanUtils.copyProperties(dto, lending, "id", "gameId", "clientId", "startLendingDate",
+                                "finishLendingDate");
+                        lending.setStartLendingDate(dto.getStartLendingDate());
+                        lending.setFinishLendingDate(dto.getFinishLendingDate());
+                        this.lendingRepository.save(lending);
+
+                        // } else {
+
+                        // throw new Exception("Juego no Disponible para esas fechas, elige otro!");
+
+                    } else {
+
+                        throw new Exception("El juego ya está alquilado en esas fechas! Elige otras fechas");
+                    }
+                } else {
+                    throw new Exception("Cuánto vicio! No puedes alquilar un juego más de 14 días!");
+                }
+            } else {
+
+                throw new Exception("La Fecha de Devolución del juego no puede ser inferior a la Fecha de Inicio");
+            }
+        } else {
+
+            throw new Exception("La Fecha de Inicio del préstamo debe ser desde hoy en adelante :)");
+        }
+    }
+
+    public boolean checkGameAvailability(LendingDto dto) {
+
+        // Formateador de fechas.
+
+        LendingSpecification gameSpec = new LendingSpecification(
+                new SearchCriteria("game.id", ":", dto.getGame().getId()));
+
+        SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
+        
+        SearchCriteria filtro_fechas =new  SearchCriteria("startLendingDate", "between", {formatDate.format(dto.getStartLendingDate()),formatDate.format(dto.getFinishLendingDate()});
+        
+        LendingSpecification dateStartNewLendingSpec=new LendingSpecification(
+                new SearchCriteria("startLendingDate", "between", {formatDate.format(dto.getStartLendingDate()),formatDate.format(dto.getFinishLendingDate()}));
+
+        /*
+        LendingSpecification dateStartNewLendingSpec1 = new LendingSpecification(
+                new SearchCriteria("startLendingDate", "<", formatDate.format(dto.getStartLendingDate())));
+        LendingSpecification dateStartNewLendingSpec2 = new LendingSpecification(
+                new SearchCriteria("finishLendingDate", ">", formatDate.format(dto.getStartLendingDate())));
+        Specification<Lending> filtrofechaInicio = Specification.where(dateStartNewLendingSpec1)
+                .and(dateStartNewLendingSpec2);
+
+        LendingSpecification dateFinishNewLendingSpec1 = new LendingSpecification(
+                new SearchCriteria("finishLendingDate", "<", formatDate.format(dto.getFinishLendingDate())));
+
+        LendingSpecification dateFinishNewLendingSpec2 = new LendingSpecification(
+                new SearchCriteria("finishLendingDate", ">", formatDate.format(dto.getFinishLendingDate())));
+        Specification<Lending> filtrofechaFin = Specification.where(dateFinishNewLendingSpec1)
+                .and(dateFinishNewLendingSpec2);
+
+        Specification<Lending> filtrofecha = Specification.where(filtrofechaInicio).or(filtrofechaFin);
+        Specification<Lending> aux = new Specification<Lending>() {
+        };
+
+        Specification<Lending> spec = Specification.where(gameSpec);
+        spec = spec.and(filtrofecha);
+
+        */
+        List<Lending> checkGame = this.lendingRepository.findAll(spec);
+
+        if (checkGame.size() > 0) { // JUEGO PRESTADO EN ESAS FECHAS. NO DISPONIBLE.
+            return false;
+        }
+        // JUEGO DISPONIBLE: True;
+        return true;
+    }
+
+    /*
+     * 
+     * public boolean checkLendingByClient(LendingDto dto) {
+     * 
+     * LendingSpecification clientSpec = new LendingSpecification(new
+     * SearchCriteria("client.id", ":", dto.getId()));
+     * 
+     * LendingSpecification dateStartNewLendingSpec = new LendingSpecification( new
+     * SearchCriteria("startLendingDate", ">=", dto.getStartLendingDate()));
+     * 
+     * LendingSpecification dateReturnNewLendingSpec = new LendingSpecification( new
+     * SearchCriteria("returnLendingDate", "<=", dto.getFinishLendingDate()));
+     * 
+     * Specification<Lending> spec =
+     * Specification.where(clientSpec).and(dateStartNewLendingSpec)
+     * .and(dateReturnNewLendingSpec);
+     * 
+     * List<Lending> checkClient = this.lendingRepository.findAll(spec);
+     * 
+     * if (checkClient.size() > 0) { // CLIENTE CON UN PRESTAMO ACTIVO EN ESAS
+     * FECHAS return false; } // CLIENTE PUEDE ALQUILAR EN ESAS FECHAS return true;
+     * }
+     */
+
+    @Override
+    public Page<Lending> findPage(LendingSearchDto dto) {
+
+        LendingSpecification gameSpec = new LendingSpecification(new SearchCriteria("game.id", ":", dto.getGameId()));
+
+        LendingSpecification clientSpec = new LendingSpecification(
+                new SearchCriteria("client.id", ":", dto.getIdClient()));
+
+        LendingSpecification dateStart = new LendingSpecification(
+                new SearchCriteria("lending.startLendingDate", ">=", dto.getDate()));
+
+        LendingSpecification dateReturn = new LendingSpecification(
+                new SearchCriteria("lending.returnLendingDate", "<=", dto.getDate()));
+
+        Specification<Lending> spec = Specification.where(gameSpec).and(clientSpec).and(dateStart).and(dateReturn);
+
+        return this.lendingRepository.findAll(spec, dto.getPageable().getPageable());
+
+    }
+
+    @Override
+    public List<Lending> findAll() {
+
+        return (List<Lending>) this.lendingRepository.findAll();
+
+    };
+
+    @Override
+    public Lending get(Long id) {
+
+        return this.lendingRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public void delete(Long id) throws Exception {
+
+        if (this.get(id) == null) {
+            throw new Exception("Not exists");
+        }
+
+        this.lendingRepository.deleteById(id);
+    };
+
+}

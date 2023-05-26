@@ -1,0 +1,68 @@
+package com.ccsw.tutorial.lending;
+
+import java.util.Date;
+import java.util.stream.Collectors;
+
+import org.dozer.DozerBeanMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ccsw.tutorial.lending.model.Lending;
+import com.ccsw.tutorial.lending.model.LendingDto;
+import com.ccsw.tutorial.lending.model.LendingSearchDto;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Lending", description = "API of Lending")
+@CrossOrigin(origins = "*")
+@RequestMapping(value = "/lending")
+@RestController
+public class LendingController {
+
+    @Autowired
+    LendingService lendingService;
+
+    @Autowired
+    DozerBeanMapper mapper;
+
+    @Operation(summary = "Find Page", description = "Method that return a page of Lendings")
+    @RequestMapping(value = "", method = RequestMethod.POST)
+    public Page<LendingDto> findPage(@RequestBody LendingSearchDto dto,
+            @RequestParam(value = "gameId", required = false) Long gameId,
+            @RequestParam(value = "clientId", required = false) Long clientId,
+            @RequestParam(value = "date", required = false) @DateTimeFormat(pattern = "MM/dd/yyyy") Date date) {
+
+        Page<Lending> page = this.lendingService.findPage(dto, gameId, clientId, date);
+
+        return new PageImpl<>(
+                page.getContent().stream().map(e -> mapper.map(e, LendingDto.class)).collect(Collectors.toList()),
+                page.getPageable(), page.getTotalElements());
+    }
+
+    // METODO PARA GUARDAR UN PRÉSTAMO NUEVO
+    @Operation(summary = "Save", description = "Method that saves a Lending")
+    @RequestMapping(path = "", method = RequestMethod.PUT)
+    public void save(@RequestBody LendingDto dto) throws Exception {
+
+        this.lendingService.save(dto);
+    }
+
+    // METODO PARA BORRAR UN PRÉSTAMO
+    @Operation(summary = "Delete", description = "Method that deletes a Lending")
+    @RequestMapping(path = "/{id}", method = RequestMethod.DELETE)
+    public void delete(@PathVariable("id") Long id) throws Exception {
+
+        this.lendingService.delete(id);
+    }
+
+}

@@ -1,0 +1,49 @@
+package com.ccsw.tutorial.lending.model;
+
+import java.util.Date;
+
+import com.ccsw.tutorial.common.pagination.PageableRequest;
+
+public class LendingSearchDto {
+
+    private PageableRequest pageable;
+
+    private Long idGame;
+
+    private Long idClient;
+
+    private Date date;
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public PageableRequest getPageable() {
+        return pageable;
+    }
+
+    public void setPageable(PageableRequest pageable) {
+        this.pageable = pageable;
+    }
+
+    public Long getIdGame() {
+        return idGame;
+    }
+
+    public void setIdGame(Long idGame) {
+        this.idGame = idGame;
+    }
+
+    public Long getIdClient() {
+        return idClient;
+    }
+
+    public void setIdClient(Long idClient) {
+        this.idClient = idClient;
+    }
+
+}

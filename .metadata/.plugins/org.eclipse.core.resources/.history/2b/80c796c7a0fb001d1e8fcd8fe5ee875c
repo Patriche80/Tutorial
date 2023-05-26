@@ -1,0 +1,151 @@
+package com.ccsw.tutorial.lending;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.ccsw.tutorial.lending.model.LendingDto;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+
+public class LendingIT {
+
+    public static final String LOCALHOST = "http://localhost:";
+    public static final String SERVICE_PATH = "/lending";
+
+    public static final Long EXISTS_LENDING_ID = 1L;
+    public static final Long NOT_EXISTS_LENDING_ID = 0L;
+
+    private static final Long NOT_EXISTS_CLIENT = 0L;
+    private static final Long EXISTS_CLIENT = 3L;
+
+    private static final Long NOT_EXISTS_GAME = 0L;
+    private static final Long EXISTS_GAME = 3L;
+
+    private static final String GAME_ID_PARAM = "idGame";
+    private static final String CLIENT_ID_PARAM = "idClient";
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    ParameterizedTypeReference<List<LendingDto>> responseType = new ParameterizedTypeReference<List<LendingDto>>() {
+    };
+
+    @Test
+    private String getUrlWithParams() {
+        return UriComponentsBuilder.fromHttpUrl(LOCALHOST + port + SERVICE_PATH)
+                .queryParam(CLIENT_ID_PARAM, "{" + CLIENT_ID_PARAM + "}")
+                .queryParam(GAME_ID_PARAM, "{" + GAME_ID_PARAM + "}").encode().toUriString();
+    }
+
+    @Test
+    public void findWithoutFiltersShouldReturnAllGamesInDB() {
+
+        int LENDINGS_WITH_FILTER = 5;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, null);
+        params.put(CLIENT_ID_PARAM, null);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findExistsClientShouldReturnLendings() {
+
+        int LENDINGS_WITH_FILTER = 2;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findExistsClientAndGameShouldReturnGames() {
+
+        int GAMES_WITH_FILTER = 1;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+        params.put(GAME_ID_PARAM, EXISTS_GAME);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(GAMES_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findNotExistsClientShouldReturnEmpty() {
+
+        int LENDINGS_WITH_FILTER = 0;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, null);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findNotExistsClientOrGameShouldReturnEmpty() {
+
+        int LENDINGS_WITH_FILTER = 0;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, NOT_EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+
+        params.put(GAME_ID_PARAM, NOT_EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+
+        response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null, responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+
+        params.put(GAME_ID_PARAM, EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null, responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+}

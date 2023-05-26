@@ -1,0 +1,59 @@
+package com.ccsw.tutorial.lending.model;
+
+import java.util.Date;
+
+import com.ccsw.tutorial.client.model.Client;
+import com.ccsw.tutorial.game.model.Game;
+
+public class LendingDto {
+
+    private Long id;
+    private Game game;
+    private Client client;
+    private Date startLendingDate;
+    private Date finishLendingDate;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Game getGame() {
+        return game;
+    }
+
+    public void setGame(Game game) {
+        this.game = game;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
+    }
+    
+
+    public Date getStartLendingDate() {
+        return startLendingDate;
+
+    }
+    public void setStartLendingDate(Date startLendingDate) {
+        this.startLendingDate = startLendingDate;
+        System.out.println("aaaa");
+    }
+    
+    
+
+    public Date getFinishLendingDate() {
+        return finishLendingDate;
+    }
+    public void setFinishLendingDate(Date finishLendingDate) {
+        this.finishLendingDate = finishLendingDate;
+    }
+
+}

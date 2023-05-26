@@ -1,0 +1,22 @@
+package com.ccsw.tutorial.lending;
+
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.CrudRepository;
+
+import com.ccsw.tutorial.lending.model.Lending;
+import com.ccsw.tutorial.lending.model.LendingSearchDto;
+
+public interface LendingRepository extends CrudRepository<Lending, Long>, JpaSpecificationExecutor<Lending> {
+
+    Page<Lending> find(LendingSearchDto dto, Pageable pageable);
+
+    Page<Lending> findAll(Pageable pageable);
+    
+    List<Lending> findAllByLendingDateBetween (Date startLendingDate, Date returnLendingDate);    
+
+}

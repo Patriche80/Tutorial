@@ -1,0 +1,251 @@
+package com.ccsw.tutorial.lending;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.ccsw.tutorial.common.pagination.PageableRequest;
+import com.ccsw.tutorial.config.ResponsePage;
+import com.ccsw.tutorial.lending.model.LendingDto;
+import com.ccsw.tutorial.lending.model.LendingSearchDto;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+
+public class LendingIT {
+
+    public static final String LOCALHOST = "http://localhost:";
+    public static final String SERVICE_PATH = "/lending";
+
+    public static final Long EXISTS_LENDING_ID = 1L;
+    public static final Long NOT_EXISTS_LENDING_ID = 0L;
+
+    private static final Long NOT_EXISTS_CLIENT = 0L;
+    private static final Long EXISTS_CLIENT = 3L;
+
+    private static final Long NOT_EXISTS_GAME = 0L;
+    private static final Long EXISTS_GAME = 3L;
+
+    private static final String GAME_ID_PARAM = "idGame";
+    private static final String CLIENT_ID_PARAM = "idClient";
+    private static final String DATE_PARAM = "date";
+
+    private static final int TOTAL_LENDINGS = 5;
+    private static final int PAGE_SIZE = 5;
+
+    public static final Long DELETE_LENDING_ID = 5L;
+
+    // public static final Date NEW_START_LENDING_DATE;
+    // public static final Date NEW_FINISH_LENDING_DATE;
+
+    @LocalServerPort
+    private int port;
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    ParameterizedTypeReference<List<LendingDto>> responseType = new ParameterizedTypeReference<List<LendingDto>>() {
+    };
+
+    ParameterizedTypeReference<ResponsePage<LendingDto>> responseTypePage = new ParameterizedTypeReference<ResponsePage<LendingDto>>() {
+    };
+
+    @Test
+    private String getUrlWithParams() {
+        return UriComponentsBuilder.fromHttpUrl(LOCALHOST + port + SERVICE_PATH)
+                .queryParam(CLIENT_ID_PARAM, "{" + CLIENT_ID_PARAM + "}")
+                .queryParam(GAME_ID_PARAM, "{" + GAME_ID_PARAM + "}").queryParam(DATE_PARAM, "{" + DATE_PARAM + "}")
+                .encode().toUriString();
+    }
+
+    @Test
+    public void findWithoutFiltersShouldReturnAllGamesInDB() {
+
+        int LENDINGS_WITH_FILTER = 5;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, null);
+        params.put(CLIENT_ID_PARAM, null);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findExistsClientShouldReturnLendings() {
+
+        int LENDINGS_WITH_FILTER = 2;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findExistsClientAndGameShouldReturnGames() {
+
+        int GAMES_WITH_FILTER = 1;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+        params.put(GAME_ID_PARAM, EXISTS_GAME);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(GAMES_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findNotExistsClientShouldReturnEmpty() {
+
+        int LENDINGS_WITH_FILTER = 0;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, null);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findNotExistsClientOrGameShouldReturnEmpty() {
+
+        int LENDINGS_WITH_FILTER = 0;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, NOT_EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null,
+                responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+
+        params.put(GAME_ID_PARAM, NOT_EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, EXISTS_CLIENT);
+
+        response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null, responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+
+        params.put(GAME_ID_PARAM, EXISTS_GAME);
+        params.put(CLIENT_ID_PARAM, NOT_EXISTS_CLIENT);
+
+        response = restTemplate.exchange(getUrlWithParams(), HttpMethod.GET, null, responseType, params);
+        assertNotNull(response);
+        assertEquals(LENDINGS_WITH_FILTER, response.getBody().size());
+    }
+
+    @Test
+    public void findFirstPageWithFiveSizeShouldReturnFirstFiveResults() {
+
+        LendingSearchDto searchDto = new LendingSearchDto();
+        searchDto.setPageable(new PageableRequest(0, PAGE_SIZE));
+
+        ResponseEntity<ResponsePage<LendingDto>> response = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH,
+                HttpMethod.POST, new HttpEntity<>(searchDto), responseTypePage);
+
+        assertNotNull(response);
+        assertEquals(TOTAL_LENDINGS, response.getBody().getTotalElements());
+        assertEquals(PAGE_SIZE, response.getBody().getContent().size());
+    }
+
+    @Test
+    public void findSecondPageWithFiveSizeShouldReturnLastResult() {
+
+        int elementsCount = TOTAL_LENDINGS - PAGE_SIZE;
+
+        LendingSearchDto searchDto = new LendingSearchDto();
+        searchDto.setPageable(new PageableRequest(1, PAGE_SIZE));
+
+        ResponseEntity<ResponsePage<LendingDto>> response = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH,
+                HttpMethod.POST, new HttpEntity<>(searchDto), responseTypePage);
+
+        assertNotNull(response);
+        assertEquals(TOTAL_LENDINGS, response.getBody().getTotalElements());
+        assertEquals(elementsCount, response.getBody().getContent().size());
+    }
+
+    @Test
+    public void deleteWithExistsIdShouldDeleteClient() {
+
+        long newLendingSize = TOTAL_LENDINGS - 1;
+
+        restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + DELETE_LENDING_ID, HttpMethod.DELETE, null,
+                Void.class);
+
+        LendingSearchDto searchDto = new LendingSearchDto();
+        searchDto.setPageable(new PageableRequest(0, TOTAL_LENDINGS));
+
+        ResponseEntity<ResponsePage<LendingDto>> response = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH,
+                HttpMethod.POST, new HttpEntity<>(searchDto), responseTypePage);
+
+        assertNotNull(response);
+        assertEquals(newLendingSize, response.getBody().getTotalElements());
+    }
+
+    @Test
+    public void deleteWithNotExistsIdShouldThrowException() {
+
+        long deleteLendingId = TOTAL_LENDINGS + 1;
+
+        ResponseEntity<?> response = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + deleteLendingId,
+                HttpMethod.DELETE, null, Void.class);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+    }
+
+    ParameterizedTypeReference<List<LendingDto>> responseTypeList = new ParameterizedTypeReference<List<LendingDto>>() {
+    };
+
+    @Test
+    public void saveLendingWithGameByMoreThanOneClientAtSameDateShouldNotSave() {
+
+    }
+
+    @Test
+    public void saveLendingWithClientWithMoreThanOneGameAtSameDateShouldNotSave() {
+
+    }
+
+    @Test
+    public void findAllShouldReturnAllLending() {
+
+        ResponseEntity<List<LendingDto>> response = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH,
+                HttpMethod.GET, null, responseTypeList);
+
+        assertNotNull(response);
+        assertEquals(TOTAL_LENDINGS, response.getBody().size());
+    }
+
+}
