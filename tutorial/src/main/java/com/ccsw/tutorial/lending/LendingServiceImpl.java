@@ -11,9 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import com.ccsw.tutorial.client.ClientRepository;
+import com.ccsw.tutorial.client.ClientService;
 import com.ccsw.tutorial.common.criteria.SearchCriteria;
-import com.ccsw.tutorial.game.GameRepository;
+import com.ccsw.tutorial.game.GameService;
 import com.ccsw.tutorial.lending.model.Lending;
 import com.ccsw.tutorial.lending.model.LendingDto;
 import com.ccsw.tutorial.lending.model.LendingSearchDto;
@@ -28,10 +28,10 @@ public class LendingServiceImpl implements LendingService {
     LendingRepository lendingRepository;
 
     @Autowired
-    GameRepository gamerepository;
+    GameService gameService;
 
     @Autowired
-    ClientRepository clientrepository;
+    ClientService clientService;
 
     @Override
     public void save(LendingDto dto) throws Exception {
@@ -76,8 +76,12 @@ public class LendingServiceImpl implements LendingService {
 
                             BeanUtils.copyProperties(dto, lending, "id", "gameId", "clientId", "startLendingDate",
                                     "finishLendingDate");
+
+                            lending.setClient(clientService.get(dto.getClient().getId()));
+                            lending.setGame(gameService.get(dto.getGame().getId()));
                             lending.setStartLendingDate(dto.getStartLendingDate());
                             lending.setFinishLendingDate(dto.getFinishLendingDate());
+
                             this.lendingRepository.save(lending);
 
                         } else {
